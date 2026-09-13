@@ -58,6 +58,15 @@ export const DEMO_MEMBERS: Member[] = [
     roles: [MemberRole.FELLOW],
     createdAt: '2026-07-10T11:00:00Z',
   },
+  // 6. Arc. Olumide Adeleke (Accommodation Welfare & Mediation Officer)
+  {
+    id: 'member-welfare-mediation-officer',
+    h4dMemberId: 'H4D-00007',
+    displayName: 'Arc. Olumide Adeleke',
+    email: 'mediation@hut4devs.local',
+    roles: [MemberRole.FELLOW, MemberRole.WELFARE_MEDIATION_OFFICER],
+    createdAt: '2026-03-01T08:00:00Z',
+  },
 ];
 
 /**

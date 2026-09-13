@@ -5,6 +5,7 @@ import { ResponsibilityDetailView } from './components/ResponsibilityDetailView'
 import { AccommodationAdminView, AdminProviderEventDisplay } from './components/AccommodationAdminView';
 import { CoordinatorWorkspaceView } from './components/CoordinatorWorkspaceView';
 import { CaptainWorkspaceView } from './components/CaptainWorkspaceView';
+import { WelfareMediationWorkspaceView } from './components/WelfareMediationWorkspaceView';
 import { DevAuthView } from './components/DevAuthView';
 import { PendingMembershipView } from './components/PendingMembershipView';
 import { RegistrationModal } from './components/RegistrationModal';
@@ -52,7 +53,8 @@ type AppView =
   | 'responsibility-detail'
   | 'accommodation-admin'
   | 'coordinator'
-  | 'room-captain';
+  | 'room-captain'
+  | 'welfare-mediation';
 
 type AppTheme = 'light' | 'dark';
 
@@ -322,6 +324,9 @@ export default function App() {
       case 'FINANCIAL_COVERAGE':
         setView('accommodation-admin');
         break;
+      case 'WELFARE_MEDIATION_OFFICER':
+        setView('welfare-mediation');
+        break;
     }
   };
 
@@ -361,6 +366,8 @@ export default function App() {
         } else if (defMode === 'FINANCIAL_ADMIN') {
           setView('accommodation-admin');
           loadAdminAuditData();
+        } else if (defMode === 'WELFARE_MEDIATION_OFFICER') {
+          setView('welfare-mediation');
         } else {
           setView('member-home');
         }
@@ -729,6 +736,36 @@ export default function App() {
           onBack={governancePreviewContext ? handleReturnToGovernance : undefined}
           onHome={governancePreviewContext ? handleReturnToDevEntry : undefined}
         />
+      )}
+
+      {/* Accommodation Welfare & Mediation Workspace View */}
+      {view === 'welfare-mediation' && member && (
+        <Hut4DevsWorkspaceFrame
+          isDark={isDark}
+          headerProps={{
+            isDark,
+            previewContext: governancePreviewContext,
+            currentMember: member,
+            activeMode,
+            scopedRoles,
+            onModeChange: handleModeChange,
+            onBack: governancePreviewContext ? handleReturnToGovernance : undefined,
+            backLabel: 'Back to Administration Scopes',
+            onHome: governancePreviewContext ? handleReturnToDevEntry : undefined,
+            homeLabel: 'Dev Entry',
+            onExitToLanding: () => setView('landing'),
+            onToggleTheme: toggleTheme,
+            onLogout: handleLogout,
+          }}
+          contentClassName="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6"
+        >
+          <WelfareMediationWorkspaceView
+            member={member}
+            activeMode={activeMode}
+            isDark={isDark}
+            previewContext={governancePreviewContext}
+          />
+        </Hut4DevsWorkspaceFrame>
       )}
 
       {/* Registration Modal */}

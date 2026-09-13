@@ -150,6 +150,13 @@ export const DEV_IDENTITIES = [
     role: MemberRole.ACCOMMODATION_FELLOWS_COORDINATOR,
     token: 'dev-session-token-coordinator',
   },
+  {
+    memberId: 'member-welfare-mediation-officer',
+    displayName: 'Accommodation Welfare & Mediation Officer (Arc. Olumide Adeleke)',
+    email: 'mediation@hut4devs.local',
+    role: MemberRole.WELFARE_MEDIATION_OFFICER,
+    token: 'dev-session-token-welfare',
+  },
 ];
 
 /**
@@ -179,6 +186,12 @@ export async function createDevelopmentSession(
     target.memberId === 'member-coordinator-current'
   ) {
     matched = DEV_IDENTITIES[3];
+  } else if (
+    target.role === MemberRole.WELFARE_MEDIATION_OFFICER ||
+    target.role === 'WELFARE_MEDIATION_OFFICER' ||
+    target.memberId === 'member-welfare-mediation-officer'
+  ) {
+    matched = DEV_IDENTITIES[4];
   } else if (
     target.role === MemberRole.FELLOW ||
     target.role === 'FELLOW' ||

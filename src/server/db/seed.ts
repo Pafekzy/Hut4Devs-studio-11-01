@@ -180,7 +180,28 @@ export async function seedDevelopmentDatabase(client: SqlQueryable): Promise<voi
     ['role-coordinator-admin', 'member-coordinator-current', 'ACCOMMODATION_FELLOWS_COORDINATOR']
   );
 
-  // 5. Deterministic Development Sessions (valid for 1 year)
+  // 5. Accommodation Welfare & Mediation Officer (Arc. Olumide Adeleke)
+  await client.query(
+    `
+    INSERT INTO members (id, display_name, email)
+    VALUES ($1, $2, $3)
+    ON CONFLICT (id) DO UPDATE SET
+      display_name = EXCLUDED.display_name,
+      email = EXCLUDED.email
+    `,
+    ['member-welfare-mediation-officer', 'Arc. Olumide Adeleke', 'mediation@hut4devs.local']
+  );
+
+  await client.query(
+    `
+    INSERT INTO member_roles (id, member_id, role)
+    VALUES ($1, $2, $3)
+    ON CONFLICT (member_id, role) DO NOTHING
+    `,
+    ['role-welfare-officer', 'member-welfare-mediation-officer', 'WELFARE_MEDIATION_OFFICER']
+  );
+
+  // 6. Deterministic Development Sessions (valid for 1 year)
   const oneYearExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
 
   await client.query(
@@ -221,5 +242,15 @@ export async function seedDevelopmentDatabase(client: SqlQueryable): Promise<voi
       expires_at = EXCLUDED.expires_at
     `,
     ['session-dev-coordinator', 'dev-session-token-coordinator', 'member-coordinator-current', oneYearExpiry]
+  );
+
+  await client.query(
+    `
+    INSERT INTO sessions (id, token, member_id, expires_at)
+    VALUES ($1, $2, $3, $4)
+    ON CONFLICT (token) DO UPDATE SET
+      expires_at = EXCLUDED.expires_at
+    `,
+    ['session-dev-welfare', 'dev-session-token-welfare', 'member-welfare-mediation-officer', oneYearExpiry]
   );
 }

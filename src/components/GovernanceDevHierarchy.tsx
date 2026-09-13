@@ -1051,7 +1051,7 @@ export const GovernanceDevHierarchy: React.FC<GovernanceDevHierarchyProps> = ({
                       disabled={isLoading || authenticating}
                       onClick={() =>
                         handleLaunchPreview(
-                          MemberRole.ACCOMMODATION_FELLOWS_COORDINATOR,
+                          MemberRole.WELFARE_MEDIATION_OFFICER,
                           `${adm.memberName} (${adm.roleTitle})`,
                           {
                             isDevPreview: true,
@@ -1072,7 +1072,7 @@ export const GovernanceDevHierarchy: React.FC<GovernanceDevHierarchyProps> = ({
                       className="w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-[#5A2D0C] text-[#FFF9EE] hover:bg-[#723B12] transition-colors cursor-pointer shadow-sm disabled:opacity-50"
                     >
                       <UserCheck className="w-3.5 h-3.5 text-[#C88D3A]" />
-                      <span>Development Preview: Welfare &amp; Mediation View</span>
+                      <span>Development Preview: Welfare &amp; Mediation Workspace</span>
                     </button>
                   )}
                 </div>
