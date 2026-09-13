@@ -10,6 +10,7 @@ import { PendingMembershipView } from './components/PendingMembershipView';
 import { RegistrationModal } from './components/RegistrationModal';
 import { Hut4DevsLogo } from './components/Hut4DevsLogo';
 import { ModeSwitcher } from './components/ModeSwitcher';
+import { GovernancePreviewContext, Hut4DevsWorkspaceFrame } from './components/Hut4DevsFrame';
 import { DEMO_ACCOMMODATION_RESPONSIBILITY } from './data/demoAccommodation';
 import { DEMO_COMMAND_CENTER_RESPONSIBILITIES } from './data/demoCommandCenterPopulation';
 import {
@@ -114,6 +115,14 @@ export default function App() {
   const [streamStatus, setStreamStatus] = useState<
     'connecting' | 'connected' | 'error' | 'disconnected'
   >('disconnected');
+
+  // Governance Development Preview Context and Return Drilldown State
+  const [governancePreviewContext, setGovernancePreviewContext] = useState<GovernancePreviewContext | null>(null);
+  const [governanceReturnDrill, setGovernanceReturnDrill] = useState<{
+    initialDrillLevel?: 'INSTITUTIONS' | 'CAMPUSES' | 'CATEGORIES' | 'ROOM_CAPTAINS' | 'COORDINATOR' | 'ADMINISTRATION';
+    initialInstitutionId?: string;
+    initialCampusId?: string;
+  }>({});
 
   // Synchronize scoped roles whenever member changes
   useEffect(() => {
@@ -329,7 +338,13 @@ export default function App() {
     }
   };
 
-  const handleSelectDevIdentity = async (role: MemberRole) => {
+  const handleSelectDevIdentity = async (role: MemberRole, previewCtx?: GovernancePreviewContext) => {
+    if (previewCtx) {
+      setGovernancePreviewContext(previewCtx);
+    } else {
+      setGovernancePreviewContext(null);
+    }
+
     if (typeof fetch === 'function') {
       const res = await establishDevSession(role);
       if (res.success && res.member) {
@@ -351,6 +366,26 @@ export default function App() {
         }
       }
     }
+  };
+
+  // Safe Back handler: returns one step up the governance hierarchy into DevAuth
+  const handleReturnToGovernance = () => {
+    if (governancePreviewContext) {
+      setGovernanceReturnDrill({
+        initialDrillLevel: governancePreviewContext.returnDrillLevel || 'CATEGORIES',
+        initialInstitutionId: governancePreviewContext.institutionId,
+        initialCampusId: governancePreviewContext.campusId,
+      });
+    }
+    setGovernancePreviewContext(null);
+    setView('dev-auth');
+  };
+
+  // Safe Home handler: clears temporary preview and returns cleanly to Sign In / Development Entry
+  const handleReturnToDevEntry = () => {
+    setGovernancePreviewContext(null);
+    setGovernanceReturnDrill({});
+    setView('dev-auth');
   };
 
   const loadAdminAuditData = () => {
@@ -563,9 +598,17 @@ export default function App() {
           isDark={isDark}
           onToggleTheme={toggleTheme}
           onAuthenticate={handleSelectDevIdentity}
+          onLaunchPreview={handleSelectDevIdentity}
           onFirebaseSessionResolved={handleFirebaseSessionResolved}
-          onCancel={() => setView('landing')}
+          onCancel={() => {
+            setGovernanceReturnDrill({});
+            setView('landing');
+          }}
           onOpenRegistrationModal={() => setIsRegistrationOpen(true)}
+          initialOpenDevTools={!!governanceReturnDrill.initialDrillLevel}
+          initialDrillLevel={governanceReturnDrill.initialDrillLevel}
+          initialInstitutionId={governanceReturnDrill.initialInstitutionId}
+          initialCampusId={governanceReturnDrill.initialCampusId}
         />
       )}
 
@@ -616,106 +659,52 @@ export default function App() {
 
       {/* Coordinator Workspace View */}
       {view === 'coordinator' && member && (
-        <div
-          className={`min-h-screen transition-colors duration-200 ${
-            isDark ? 'bg-[#2F1707] text-[#FFF9EE]' : 'bg-[#F7F1E7] text-[#5A2D0C]'
-          }`}
+        <Hut4DevsWorkspaceFrame
+          isDark={isDark}
+          headerProps={{
+            isDark,
+            previewContext: governancePreviewContext,
+            currentMember: member,
+            activeMode,
+            scopedRoles,
+            onModeChange: handleModeChange,
+            onBack: governancePreviewContext ? handleReturnToGovernance : undefined,
+            backLabel: 'Back to Coordinator Scopes',
+            onHome: governancePreviewContext ? handleReturnToDevEntry : undefined,
+            homeLabel: 'Dev Entry',
+            onExitToLanding: () => setView('landing'),
+            onToggleTheme: toggleTheme,
+            onLogout: handleLogout,
+          }}
+          contentClassName="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6"
         >
-          <header
-            className="border-b transition-colors duration-200"
-            style={{
-              borderColor: isDark ? '#3E200C' : '#EAE0D0',
-              backgroundColor: isDark ? 'rgba(47, 23, 7, 0.95)' : 'rgba(247, 241, 231, 0.95)',
-            }}
-          >
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-              <button
-                type="button"
-                onClick={() => setView('landing')}
-                className="inline-flex items-center text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C88D3A] rounded-lg cursor-pointer"
-                title="Return to Public Landing"
-              >
-                <Hut4DevsLogo isDark={isDark} size="sm" showWordmark={true} />
-              </button>
-
-              <div className="flex items-center gap-2.5">
-                <ModeSwitcher
-                  member={member}
-                  scopedRoles={scopedRoles}
-                  currentMode={activeMode}
-                  onModeChange={handleModeChange}
-                  isDark={isDark}
-                />
-                <button
-                  type="button"
-                  id="coordinator-logout-btn"
-                  onClick={handleLogout}
-                  aria-label="Log Out"
-                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
-                    isDark ? 'text-[#C88D3A] hover:text-[#FFF9EE]' : 'text-[#8A5D3B] hover:text-[#5A2D0C]'
-                  }`}
-                >
-                  Log Out
-                </button>
-              </div>
-            </div>
-          </header>
-          <main className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-            <CoordinatorWorkspaceView member={member} activeMode={activeMode} isDark={isDark} />
-          </main>
-        </div>
+          <CoordinatorWorkspaceView member={member} activeMode={activeMode} isDark={isDark} />
+        </Hut4DevsWorkspaceFrame>
       )}
 
       {/* Room Captain Workspace View */}
       {view === 'room-captain' && member && (
-        <div
-          className={`min-h-screen transition-colors duration-200 ${
-            isDark ? 'bg-[#2F1707] text-[#FFF9EE]' : 'bg-[#F7F1E7] text-[#5A2D0C]'
-          }`}
+        <Hut4DevsWorkspaceFrame
+          isDark={isDark}
+          headerProps={{
+            isDark,
+            previewContext: governancePreviewContext,
+            currentMember: member,
+            activeMode,
+            scopedRoles,
+            onModeChange: handleModeChange,
+            onBack: governancePreviewContext ? handleReturnToGovernance : undefined,
+            backLabel: 'Back to Room Captain Scopes',
+            onHome: governancePreviewContext ? handleReturnToDevEntry : undefined,
+            homeLabel: 'Dev Entry',
+            onExitToLanding: () => setView('landing'),
+            onToggleTheme: toggleTheme,
+            onLogout: handleLogout,
+          }}
+          contentClassName="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6"
         >
-          <header
-            className="border-b transition-colors duration-200"
-            style={{
-              borderColor: isDark ? '#3E200C' : '#EAE0D0',
-              backgroundColor: isDark ? 'rgba(47, 23, 7, 0.95)' : 'rgba(247, 241, 231, 0.95)',
-            }}
-          >
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-              <button
-                type="button"
-                onClick={() => setView('landing')}
-                className="inline-flex items-center text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C88D3A] rounded-lg cursor-pointer"
-                title="Return to Public Landing"
-              >
-                <Hut4DevsLogo isDark={isDark} size="sm" showWordmark={true} />
-              </button>
-
-              <div className="flex items-center gap-2.5">
-                <ModeSwitcher
-                  member={member}
-                  scopedRoles={scopedRoles}
-                  currentMode={activeMode}
-                  onModeChange={handleModeChange}
-                  isDark={isDark}
-                />
-                <button
-                  type="button"
-                  id="captain-logout-btn"
-                  onClick={handleLogout}
-                  aria-label="Log Out"
-                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
-                    isDark ? 'text-[#C88D3A] hover:text-[#FFF9EE]' : 'text-[#8A5D3B] hover:text-[#5A2D0C]'
-                  }`}
-                >
-                  Log Out
-                </button>
-              </div>
-            </div>
-          </header>
-          <main className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-            <CaptainWorkspaceView member={member} activeMode={activeMode} />
-          </main>
-        </div>
+          <CaptainWorkspaceView member={member} activeMode={activeMode} />
+        </Hut4DevsWorkspaceFrame>
       )}
 
       {/* Accommodation Admin View */}
@@ -736,6 +725,9 @@ export default function App() {
           currentMode={activeMode}
           scopedRoles={scopedRoles}
           onModeChange={handleModeChange}
+          previewContext={governancePreviewContext}
+          onBack={governancePreviewContext ? handleReturnToGovernance : undefined}
+          onHome={governancePreviewContext ? handleReturnToDevEntry : undefined}
         />
       )}
 

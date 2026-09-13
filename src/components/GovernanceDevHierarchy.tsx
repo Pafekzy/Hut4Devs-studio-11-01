@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MemberRole } from '../domain/auth';
+import { GovernancePreviewContext } from './Hut4DevsFrame';
 import {
   INSTITUTIONS_SEED,
   CAMPUSES_SEED,
@@ -36,8 +37,12 @@ interface GovernanceDevHierarchyProps {
   isDark: boolean;
   isLoading: boolean;
   authenticating: boolean;
-  onAuthenticate: (role: MemberRole) => Promise<void>;
+  onAuthenticate: (role: MemberRole, previewContext?: GovernancePreviewContext) => Promise<void>;
+  onLaunchPreview?: (role: MemberRole, previewContext: GovernancePreviewContext) => Promise<void>;
   onReturnToSignIn?: () => void;
+  initialDrillLevel?: DrillLevel;
+  initialInstitutionId?: string;
+  initialCampusId?: string;
 }
 
 type DrillLevel = 'INSTITUTIONS' | 'CAMPUSES' | 'CATEGORIES' | 'ROOM_CAPTAINS' | 'COORDINATOR' | 'ADMINISTRATION';
@@ -47,14 +52,28 @@ export const GovernanceDevHierarchy: React.FC<GovernanceDevHierarchyProps> = ({
   isLoading,
   authenticating,
   onAuthenticate,
+  onLaunchPreview,
   onReturnToSignIn,
+  initialDrillLevel,
+  initialInstitutionId,
+  initialCampusId,
 }) => {
-  // Navigation State
-  const [drillLevel, setDrillLevel] = useState<DrillLevel>('INSTITUTIONS');
-  const [selectedInstitution, setSelectedInstitution] = useState<Institution | null>(
-    INSTITUTIONS_SEED.find((i) => i.id === 'inst-learn2earn') || INSTITUTIONS_SEED[0]
-  );
-  const [selectedCampus, setSelectedCampus] = useState<Campus | null>(null);
+  // Navigation State with optional pre-selected initial level (e.g. when returning from preview)
+  const [drillLevel, setDrillLevel] = useState<DrillLevel>(initialDrillLevel || 'INSTITUTIONS');
+  const [selectedInstitution, setSelectedInstitution] = useState<Institution | null>(() => {
+    if (initialInstitutionId) {
+      return INSTITUTIONS_SEED.find((i) => i.id === initialInstitutionId) || INSTITUTIONS_SEED[0];
+    }
+    return INSTITUTIONS_SEED.find((i) => i.id === 'inst-learn2earn') || INSTITUTIONS_SEED[0];
+  });
+  const [selectedCampus, setSelectedCampus] = useState<Campus | null>(() => {
+    const instId = initialInstitutionId || 'inst-learn2earn';
+    if (initialCampusId) {
+      const campusList = CAMPUSES_SEED[instId] || [];
+      return campusList.find((c) => c.id === initialCampusId) || null;
+    }
+    return null;
+  });
   const [selectedRoomCaptain, setSelectedRoomCaptain] = useState<RoomCaptainAssignment | null>(null);
   const [selectedAdminRole, setSelectedAdminRole] = useState<AdministrationAssignment | null>(null);
 
@@ -90,13 +109,18 @@ export const GovernanceDevHierarchy: React.FC<GovernanceDevHierarchyProps> = ({
     }
   };
 
-  // Trigger Development Preview Authentication
+  // Trigger Development Preview Authentication with full governance context
   const handleLaunchPreview = async (
     role: MemberRole,
-    contextSummary: string
+    contextSummary: string,
+    previewContext?: GovernancePreviewContext
   ) => {
     setPreviewNote(`Activating Development Preview: ${contextSummary}`);
-    await onAuthenticate(role);
+    if (onLaunchPreview && previewContext) {
+      await onLaunchPreview(role, previewContext);
+    } else {
+      await onAuthenticate(role, previewContext);
+    }
   };
 
   // Helper getters
@@ -737,7 +761,24 @@ export const GovernanceDevHierarchy: React.FC<GovernanceDevHierarchyProps> = ({
                       onClick={() =>
                         handleLaunchPreview(
                           MemberRole.ROOM_CAPTAIN,
-                          `${rc.memberName} (${rc.roomNumber} Captain Scope)`
+                          `${rc.memberName} (${rc.roomNumber} Captain Scope)`,
+                          {
+                            isDevPreview: true,
+                            institutionId: selectedInstitution?.id || 'inst-learn2earn',
+                            institutionName: selectedInstitution?.name || 'Learn2Earn',
+                            campusId: selectedCampus?.id || '',
+                            campusName: selectedCampus?.name || '',
+                            category: 'ROOM_CAPTAIN',
+                            categoryLabel: 'Room Captain Assignments',
+                            accommodationSpaceName: rc.accommodationSpaceName,
+                            roomNumber: rc.roomNumber,
+                            floor: rc.floor,
+                            roleTitle: `Room Captain (${rc.roomNumber})`,
+                            fixtureMemberName: rc.memberName,
+                            fixtureMemberEmail: rc.memberEmail,
+                            fixtureClassification: 'SEED_FIXTURE',
+                            returnDrillLevel: 'ROOM_CAPTAINS',
+                          }
                         )
                       }
                       className="w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-[#5A2D0C] text-[#FFF9EE] hover:bg-[#723B12] transition-colors cursor-pointer shadow-sm disabled:opacity-50"
@@ -839,7 +880,21 @@ export const GovernanceDevHierarchy: React.FC<GovernanceDevHierarchyProps> = ({
                   onClick={() =>
                     handleLaunchPreview(
                       MemberRole.ACCOMMODATION_FELLOWS_COORDINATOR,
-                      `${coordinator.memberName} (L2E Lagos Yaba Coordinator)`
+                      `${coordinator.memberName} (L2E Lagos Yaba Coordinator)`,
+                      {
+                        isDevPreview: true,
+                        institutionId: selectedInstitution?.id || 'inst-learn2earn',
+                        institutionName: selectedInstitution?.name || 'Learn2Earn',
+                        campusId: selectedCampus?.id || '',
+                        campusName: selectedCampus?.name || '',
+                        category: 'COORDINATOR',
+                        categoryLabel: 'Fellow Accommodation Coordinator',
+                        roleTitle: coordinator.title,
+                        fixtureMemberName: coordinator.memberName,
+                        fixtureMemberEmail: coordinator.memberEmail,
+                        fixtureClassification: 'SEED_FIXTURE',
+                        returnDrillLevel: 'COORDINATOR',
+                      }
                     )
                   }
                   className="w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-[#5A2D0C] text-[#FFF9EE] hover:bg-[#723B12] transition-colors cursor-pointer shadow-sm disabled:opacity-50"
@@ -967,7 +1022,21 @@ export const GovernanceDevHierarchy: React.FC<GovernanceDevHierarchyProps> = ({
                       onClick={() =>
                         handleLaunchPreview(
                           MemberRole.ACCOMMODATION_ADMIN,
-                          `${adm.memberName} (Financial Admin Command Center)`
+                          `${adm.memberName} (Financial Admin Command Center)`,
+                          {
+                            isDevPreview: true,
+                            institutionId: selectedInstitution?.id || 'inst-learn2earn',
+                            institutionName: selectedInstitution?.name || 'Learn2Earn',
+                            campusId: selectedCampus?.id || '',
+                            campusName: selectedCampus?.name || '',
+                            category: 'ADMINISTRATION',
+                            categoryLabel: 'Accommodation Administration',
+                            roleTitle: adm.roleTitle,
+                            fixtureMemberName: adm.memberName,
+                            fixtureMemberEmail: adm.memberEmail,
+                            fixtureClassification: 'SEED_FIXTURE',
+                            returnDrillLevel: 'ADMINISTRATION',
+                          }
                         )
                       }
                       className="w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-[#5A2D0C] text-[#FFF9EE] hover:bg-[#723B12] transition-colors cursor-pointer shadow-sm disabled:opacity-50"
@@ -983,7 +1052,21 @@ export const GovernanceDevHierarchy: React.FC<GovernanceDevHierarchyProps> = ({
                       onClick={() =>
                         handleLaunchPreview(
                           MemberRole.ACCOMMODATION_FELLOWS_COORDINATOR,
-                          `${adm.memberName} (${adm.roleTitle})`
+                          `${adm.memberName} (${adm.roleTitle})`,
+                          {
+                            isDevPreview: true,
+                            institutionId: selectedInstitution?.id || 'inst-learn2earn',
+                            institutionName: selectedInstitution?.name || 'Learn2Earn',
+                            campusId: selectedCampus?.id || '',
+                            campusName: selectedCampus?.name || '',
+                            category: 'ADMINISTRATION',
+                            categoryLabel: 'Accommodation Administration',
+                            roleTitle: adm.roleTitle,
+                            fixtureMemberName: adm.memberName,
+                            fixtureMemberEmail: adm.memberEmail,
+                            fixtureClassification: 'SEED_FIXTURE',
+                            returnDrillLevel: 'ADMINISTRATION',
+                          }
                         )
                       }
                       className="w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-[#5A2D0C] text-[#FFF9EE] hover:bg-[#723B12] transition-colors cursor-pointer shadow-sm disabled:opacity-50"

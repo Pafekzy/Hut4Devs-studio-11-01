@@ -3,6 +3,7 @@ import { MemberRole } from '../domain/auth';
 import { Hut4DevsLogo } from './Hut4DevsLogo';
 import { ThemeToggle } from './ThemeToggle';
 import { GovernanceDevHierarchy } from './GovernanceDevHierarchy';
+import { GovernancePreviewContext, Hut4DevsHeader } from './Hut4DevsFrame';
 import {
   User,
   ShieldCheck,
@@ -31,28 +32,38 @@ import {
 interface DevAuthViewProps {
   isDark: boolean;
   onToggleTheme: () => void;
-  onAuthenticate: (role: MemberRole) => Promise<void>;
+  onAuthenticate: (role: MemberRole, previewContext?: GovernancePreviewContext) => Promise<void>;
+  onLaunchPreview?: (role: MemberRole, previewContext: GovernancePreviewContext) => Promise<void>;
   onCancel?: () => void;
   onOpenRegistrationModal?: () => void;
   onFirebaseSessionResolved?: (session: UserSessionState) => void;
   isLoading?: boolean;
   errorMessage?: string | null;
+  initialOpenDevTools?: boolean;
+  initialDrillLevel?: 'INSTITUTIONS' | 'CAMPUSES' | 'CATEGORIES' | 'ROOM_CAPTAINS' | 'COORDINATOR' | 'ADMINISTRATION';
+  initialInstitutionId?: string;
+  initialCampusId?: string;
 }
 
 export const DevAuthView: React.FC<DevAuthViewProps> = ({
   isDark,
   onToggleTheme,
   onAuthenticate,
+  onLaunchPreview,
   onCancel,
   onOpenRegistrationModal,
   onFirebaseSessionResolved,
   isLoading = false,
   errorMessage = null,
+  initialOpenDevTools = false,
+  initialDrillLevel,
+  initialInstitutionId,
+  initialCampusId,
 }) => {
   const [selectedRole, setSelectedRole] = useState<MemberRole>(MemberRole.FELLOW);
   const [authenticating, setAuthenticating] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [showDevTools, setShowDevTools] = useState(false);
+  const [showDevTools, setShowDevTools] = useState(initialOpenDevTools);
   const [hierarchyResetKey, setHierarchyResetKey] = useState(0);
 
   // Safe Home Key handler: clears only temporary governance navigation state
@@ -104,12 +115,16 @@ export const DevAuthView: React.FC<DevAuthViewProps> = ({
     return msg || 'Authentication could not be completed. Please try again.';
   };
 
-  const handleSelectAndAuth = async (role: MemberRole) => {
+  const handleSelectAndAuth = async (role: MemberRole, previewContext?: GovernancePreviewContext) => {
     setSelectedRole(role);
     setAuthenticating(true);
     setAuthError(null);
     try {
-      await onAuthenticate(role);
+      if (onLaunchPreview && previewContext) {
+        await onLaunchPreview(role, previewContext);
+      } else {
+        await onAuthenticate(role, previewContext);
+      }
     } catch (err: any) {
       setAuthError(err.message || 'Failed to authenticate dev role.');
     } finally {
@@ -525,7 +540,11 @@ export const DevAuthView: React.FC<DevAuthViewProps> = ({
                   isLoading={isLoading}
                   authenticating={authenticating}
                   onAuthenticate={handleSelectAndAuth}
+                  onLaunchPreview={onLaunchPreview}
                   onReturnToSignIn={handleHomeKeyClick}
+                  initialDrillLevel={initialDrillLevel}
+                  initialInstitutionId={initialInstitutionId}
+                  initialCampusId={initialCampusId}
                 />
               </div>
             )}

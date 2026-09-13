@@ -20,6 +20,7 @@ import { FinancialNotesThread } from './FinancialNotesThread';
 import { Hut4DevsLogo } from './Hut4DevsLogo';
 import { ThemeToggle } from './ThemeToggle';
 import { MissingPuzzleModal } from './MissingPuzzleModal';
+import { GovernancePreviewContext, Hut4DevsHeader } from './Hut4DevsFrame';
 import {
   ShieldAlert,
   ArrowRight,
@@ -68,6 +69,9 @@ interface AccommodationAdminViewProps {
   currentMode?: ActiveMode;
   scopedRoles?: ScopedRoleAssignment[];
   onModeChange?: (mode: ActiveMode) => void;
+  previewContext?: GovernancePreviewContext | null;
+  onBack?: () => void;
+  onHome?: () => void;
 }
 
 type AttentionFilterType =
@@ -94,6 +98,9 @@ export const AccommodationAdminView: React.FC<AccommodationAdminViewProps> = ({
   currentMode = 'FINANCIAL_ADMIN',
   scopedRoles = [],
   onModeChange,
+  previewContext,
+  onBack,
+  onHome,
 }) => {
   const [isPuzzleModalOpen, setIsPuzzleModalOpen] = useState(false);
 
@@ -163,38 +170,22 @@ export const AccommodationAdminView: React.FC<AccommodationAdminViewProps> = ({
         isDark ? 'bg-[#2F1707] text-[#FFF9EE]' : 'bg-[#F7F1E7] text-[#5A2D0C]'
       }`}
     >
-      {/* Header */}
-      <header
-        className="sticky top-0 z-30 w-full border-b transition-colors duration-200"
-        style={{
-          borderColor: isDark ? '#3E200C' : '#EAE0D0',
-          backgroundColor: isDark ? 'rgba(47, 23, 7, 0.92)' : 'rgba(247, 241, 231, 0.92)',
-          backdropFilter: 'blur(8px)',
-        }}
-      >
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 sm:h-18 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={onExitToLanding}
-              className="inline-flex items-center text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C88D3A] rounded-lg cursor-pointer"
-              title="Return to Public Landing"
-            >
-              <Hut4DevsLogo isDark={isDark} size="sm" showWordmark={true} />
-            </button>
-
-            {currentMember && onModeChange && (
-              <ModeSwitcher
-                member={currentMember}
-                scopedRoles={scopedRoles}
-                currentMode={currentMode}
-                onModeChange={onModeChange}
-                isDark={isDark}
-              />
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 sm:gap-3">
+      {/* Unified Sticky Header with Governance Preview and Navigation */}
+      <Hut4DevsHeader
+        isDark={isDark}
+        previewContext={previewContext}
+        currentMember={currentMember}
+        activeMode={currentMode}
+        scopedRoles={scopedRoles}
+        onModeChange={onModeChange}
+        onBack={onBack}
+        backLabel="Back to Administration"
+        onHome={onHome}
+        homeLabel="Dev Entry"
+        onExitToLanding={onExitToLanding}
+        onToggleTheme={onToggleTheme}
+        rightActions={
+          <>
             <button
               type="button"
               id="admin-btn-missing-puzzle"
@@ -223,18 +214,9 @@ export const AccommodationAdminView: React.FC<AccommodationAdminViewProps> = ({
               />
               <span className="capitalize">Live stream: {streamStatus}</span>
             </div>
-            <ThemeToggle isDark={isDark} onToggle={onToggleTheme} />
-            <button
-              type="button"
-              onClick={onExitToLanding}
-              className="p-2 text-[#5A2D0C]/70 hover:text-[#5A2D0C] rounded-lg transition-colors cursor-pointer"
-              title="Exit to Landing"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {/* Main Content */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12">
@@ -245,9 +227,15 @@ export const AccommodationAdminView: React.FC<AccommodationAdminViewProps> = ({
           >
             Command Center &bull; Attention-First Financial Accountability
           </span>
-          <p className="text-[11px] opacity-70 mt-0.5">
-            Development Preview: Accommodation Admin Workspace (No authentication or authorization is claimed in this preview)
-          </p>
+          {previewContext?.isDevPreview ? (
+            <p className="text-[11px] opacity-80 mt-0.5">
+              Development Preview Scope: {previewContext.campusName || 'Lagos Yaba'} &bull; Financial Administration
+            </p>
+          ) : (
+            <p className="text-[11px] opacity-70 mt-0.5">
+              Development Preview: Accommodation Admin Workspace (No authentication or authorization is claimed in this preview)
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
